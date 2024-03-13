@@ -1,4 +1,4 @@
-from .dataset import TransitionDataset, create_cache
+from .dataset import TransitionDataset
 from .transforms import CropSample, RandomSample, ToTensor
 
 _all_ = [
