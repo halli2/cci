@@ -1,46 +1,111 @@
 """Functions to calculate training metrics"""
 
-from typing import Any
+from typing import Any, Dict
 
-from torch.utils.tensorboard.writer import SummaryWriter
+import aim
+import numpy as np
+import torch
+from plotly import express as px
+from plotly import graph_objs as go
+from torch import Tensor
+from torchmetrics import MetricCollection
 from torchmetrics.classification import (
     BinaryAccuracy,
     BinaryAUROC,
     BinaryConfusionMatrix,
     BinaryF1Score,
+    BinaryPrecision,
+    BinaryRecall,
     BinaryROC,
 )
 
 
-def update_metrics(metrics: dict, prediction, y):
-    for metric in metrics.values():
-        metric.update(prediction, y)
+class Metrics:
+    def __init__(self, subset: str, dataset_length: int, device):
+        self.collection = MetricCollection(
+            {
+                "cm": BinaryConfusionMatrix(normalize="true"),
+                "acc": BinaryAccuracy(),
+                "roc": BinaryROC(),
+                "auroc": BinaryAUROC(),
+                "f1": BinaryF1Score(),
+                "precision": BinaryPrecision(),
+                "recall": BinaryRecall(),
+            }
+        ).to(device)
+        self.subset = subset
+        self.dataset_length = dataset_length
+        self.running_loss = torch.tensor(0.0)
+        self.best_metrics = {
+            "acc": -np.inf,
+            "loss": np.inf,
+            "f1": -np.inf,
+            "auroc": -np.inf,
+            "precision": -np.inf,
+            "recall": -np.inf,
+        }
+
+    def to(self, device):
+        self.collection.to(device)
+
+    def update(self, predictions: Tensor, label: Tensor, loss: Tensor):
+        self.collection.update(predictions, label)
+        self.running_loss += loss.sum().to("cpu")
+
+    def compute(self) -> Dict[str, Tensor]:
+        vals: Dict[str, Tensor] = self.collection.compute()
+        vals["loss"] = self.running_loss / self.dataset_length
+
+        return vals
+
+    def reset(self) -> None:
+        self.collection.reset()
+        self.running_loss = torch.tensor(0.0)
+
+    def check_for_best(self, vals):
+        self.best_metrics["acc"] = max(self.best_metrics["acc"], vals["acc"].item())
+        self.best_metrics["loss"] = min(self.best_metrics["loss"], vals["loss"].item())
+        self.best_metrics["f1"] = max(self.best_metrics["f1"], vals["f1"].item())
+        self.best_metrics["auroc"] = max(self.best_metrics["auroc"], vals["auroc"].item())
+        self.best_metrics["precision"] = max(self.best_metrics["precision"], vals["precision"].item())
+        self.best_metrics["recall"] = max(self.best_metrics["recall"], vals["recall"].item())
+
+    def upload_metrics_epoch(
+        self,
+        run: aim.Run,
+        epoch: int,
+        plot_cm: bool = False,
+    ) -> None:
+        vals = self.compute()
+        self.check_for_best(vals)
+        for key, value in vals.items():
+            if key in ["cm", "roc"]:
+                continue
+
+            run.track(value.to("cpu"), name=key, epoch=epoch, context={"subset": self.subset})
+        if plot_cm:
+            fig = aim.Figure(confusion_matrix(vals))
+            run.track(fig, name="cm", epoch=epoch, context={"subset": self.subset})
+
+    def upload_training_end(self, run: aim.Run, prefix: str = "best_"):
+        for key, value in self.best_metrics.items():
+            run.track(value, name=f"{prefix}{key}", context={"subset": self.subset})
+
+    def upload_test(self, run: aim.Run):
+        vals = self.compute()
+        self.check_for_best(vals)
+        self.upload_training_end(run, prefix="")
+        fig = aim.Figure(confusion_matrix(vals))
+        run.track(fig, name="cm", context={"subset": self.subset})
 
 
-def reset_metrics(metrics: dict):
-    for metric in metrics.values():
-        metric.reset()
-
-
-def write_metrics(metrics: dict, loss: float, writer: SummaryWriter, epoch: int, cat: str):
-    for key, metric in metrics.items():
-        if key in ["roc", "conf"]:
-            pass
-        else:
-            writer.add_scalar(f"{key}/{cat}", metric.compute(), epoch)
-    writer.add_scalar(f"loss/{cat}", loss, epoch)
-
-
-def metric_to_device(metrics, device):
-    for metric in metrics.values():
-        metric.to(device)
-
-
-def create_metrics() -> dict[str, Any]:
-    return {
-        "conf": BinaryConfusionMatrix(),
-        "acc": BinaryAccuracy(),
-        "roc": BinaryROC(),
-        "auroc": BinaryAUROC(),
-        "f1": BinaryF1Score(),
-    }
+def confusion_matrix(calculated_metrics: dict[str, Any], key: str = "cm") -> go.Figure:
+    cm = calculated_metrics[key].to("cpu")
+    fig = px.imshow(
+        cm,
+        labels=dict(x="Predicted", y="Actual"),
+        x=["Good (0)", "Bad (1)"],
+        y=["Good (0)", "Bad (1)"],
+        text_auto=True,
+    )
+    return fig
