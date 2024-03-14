@@ -12,16 +12,18 @@ from torchmetrics import MetricCollection
 from torchmetrics.classification import (
     BinaryAccuracy,
     BinaryAUROC,
+    BinaryAveragePrecision,  # AreaUnderPrecisionRecallCurve
     BinaryConfusionMatrix,
     BinaryF1Score,
     BinaryPrecision,
+    BinaryPrecisionRecallCurve,
     BinaryRecall,
     BinaryROC,
 )
 
 
 class Metrics:
-    def __init__(self, subset: str, dataset_length: int, device):
+    def __init__(self, subset: str, dataset_length: int, device, fold=0):
         self.collection = MetricCollection(
             {
                 "cm": BinaryConfusionMatrix(normalize="true"),
@@ -31,9 +33,11 @@ class Metrics:
                 "f1": BinaryF1Score(),
                 "precision": BinaryPrecision(),
                 "recall": BinaryRecall(),
+                "prcurve": BinaryPrecisionRecallCurve(),
+                "auprc": BinaryAveragePrecision(),
             }
         ).to(device)
-        self.subset = subset
+        self.context = {"subset": subset, "fold": fold}
         self.dataset_length = dataset_length
         self.running_loss = torch.tensor(0.0)
         self.best_metrics = {
@@ -43,6 +47,7 @@ class Metrics:
             "auroc": -np.inf,
             "precision": -np.inf,
             "recall": -np.inf,
+            "auprc": -np.inf,
         }
 
     def to(self, device):
@@ -69,6 +74,7 @@ class Metrics:
         self.best_metrics["auroc"] = max(self.best_metrics["auroc"], vals["auroc"].item())
         self.best_metrics["precision"] = max(self.best_metrics["precision"], vals["precision"].item())
         self.best_metrics["recall"] = max(self.best_metrics["recall"], vals["recall"].item())
+        self.best_metrics["auprc"] = max(self.best_metrics["auprc"], vals["auprc"].item())
 
     def upload_metrics_epoch(
         self,
@@ -79,24 +85,24 @@ class Metrics:
         vals = self.compute()
         self.check_for_best(vals)
         for key, value in vals.items():
-            if key in ["cm", "roc"]:
+            if key in ["cm", "roc", "prcurve"]:
                 continue
 
-            run.track(value.to("cpu"), name=key, epoch=epoch, context={"subset": self.subset})
+            run.track(value.to("cpu"), name=key, epoch=epoch, context=self.context)  # type: ignore
         if plot_cm:
             fig = aim.Figure(confusion_matrix(vals))
-            run.track(fig, name="cm", epoch=epoch, context={"subset": self.subset})
+            run.track(fig, name="cm", epoch=epoch, context=self.context)  # type: ignore
 
     def upload_training_end(self, run: aim.Run, prefix: str = "best_"):
         for key, value in self.best_metrics.items():
-            run.track(value, name=f"{prefix}{key}", context={"subset": self.subset})
+            run.track(value, name=f"{prefix}{key}", context=self.context)  # type: ignore
 
     def upload_test(self, run: aim.Run):
         vals = self.compute()
         self.check_for_best(vals)
         self.upload_training_end(run, prefix="")
         fig = aim.Figure(confusion_matrix(vals))
-        run.track(fig, name="cm", context={"subset": self.subset})
+        run.track(fig, name="cm", context=self.context)  # type: ignore
 
 
 def confusion_matrix(calculated_metrics: dict[str, Any], key: str = "cm") -> go.Figure:

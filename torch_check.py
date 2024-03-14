@@ -10,3 +10,5 @@ if device.type == "cuda":
     print(
         f"Mem:\n Allocated: {round(torch.cuda.memory_allocated(0) / 1024 **3, 1)}GB\n Cached: {round(torch.cuda.memory_reserved(0)/1024**3, 1)}GB"
     )
+
+print(torch.cuda.get_device_capability())
