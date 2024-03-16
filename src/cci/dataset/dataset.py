@@ -1,12 +1,18 @@
 import functools
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Generator, List, Optional
 
 import numpy as np
 import polars as pl
 import scipy
 import torch
-from torch.utils.data import Dataset
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from torch.utils.data import DataLoader, Dataset
+
+from .transforms import CropSample, RandomSample, ToTensor
+
+# Use fixed seed to always get same test set
+RANDOM_STATE = 0
 
 
 class TransitionDataset(Dataset):
@@ -15,7 +21,7 @@ class TransitionDataset(Dataset):
     def __init__(
         self,
         df: pl.DataFrame,
-        root_dir: Path,
+        root_dir: str | Path,
         transforms: Optional[List[Callable]] = None,
     ):
         """Arguments:
@@ -23,16 +29,16 @@ class TransitionDataset(Dataset):
         root_dir: Path to data folder
         transform: Optional transforms to be applied on a sample."""
         self.df = df
-        self.root_dir = root_dir
+        self.root_dir = Path(root_dir)
         self.transforms = transforms
 
-    def get_pos_weight(self):
+    def get_pos_weight(self) -> float:
         ds_size = len(self.df)
         pos_size = len(self.df.filter(pl.col("Class Label") == 1))
 
         return (ds_size - pos_size) / pos_size
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.df)
 
     def __getitem__(self, index) -> Any:
@@ -51,6 +57,96 @@ class TransitionDataset(Dataset):
                 sample = transform(sample)
 
         return sample
+
+
+def split_train_test(csv: str | Path) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Returns train_val_df and test_df. Uses a fixed seed to always get the same test set"""
+    df = pl.read_csv(csv).with_row_index()
+    labels_series = df.select("Class Label").to_series()
+    labels = labels_series.to_numpy()
+
+    train_val_idx, test_idx = train_test_split(
+        range(len(df)),
+        stratify=labels,
+        test_size=0.1,
+        random_state=RANDOM_STATE,
+    )
+
+    train_val_df = df.filter(pl.col("index").is_in(train_val_idx))
+    test_df = df.filter(pl.col("index").is_in(test_idx))
+
+    # Reindex
+    train_val_df = train_val_df.drop("index").with_row_index()
+    test_df = test_df.drop("index").with_row_index()
+    return train_val_df, test_df
+
+
+def skfold(
+    csv: str | Path,
+    root_dir: str | Path,
+    batch_size: int,
+    sample_length=1500,
+    n_splits=5,
+    shuffle=True,
+    random_state: int = RANDOM_STATE,
+) -> Generator[
+    tuple[DataLoader[TransitionDataset], DataLoader[TransitionDataset], DataLoader[TransitionDataset]], None, None
+]:
+    """Generator for Straitifed K Fold"""
+    train_val_df, test_df = split_train_test(csv)
+    labels_series = train_val_df.select("Class Label").to_series()
+    labels = labels_series.to_numpy()
+    fold = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+    for train_idx, val_idx in fold.split(np.zeros(len(train_val_df)), labels):
+        train_df = train_val_df.filter(pl.col("index").is_in(train_idx))
+        val_df = train_val_df.filter(pl.col("index").is_in(val_idx))
+        train_dataset = TransitionDataset(
+            train_df,
+            root_dir,
+            transforms=[
+                RandomSample(sample_length),
+                ToTensor(),
+            ],
+        )
+        val_dataset = TransitionDataset(
+            val_df,
+            root_dir,
+            transforms=[
+                CropSample(sample_length),
+                ToTensor(),
+            ],
+        )
+        test_dataset = TransitionDataset(
+            test_df,
+            root_dir,
+            transforms=[
+                CropSample(sample_length),
+                ToTensor(),
+            ],
+        )
+        test_dataset = TransitionDataset(
+            test_df,
+            root_dir,
+            transforms=[
+                CropSample(sample_length),
+                ToTensor(),
+            ],
+        )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+        )
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=batch_size,
+        )
+
+        yield train_loader, val_loader, test_loader
 
 
 @functools.lru_cache(maxsize=None)

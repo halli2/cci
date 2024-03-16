@@ -1,7 +1,10 @@
 """Functions to calculate training metrics"""
 
+from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
+import polars as pl
 import torch
 from plotly import express as px
 from plotly import graph_objs as go
@@ -34,7 +37,8 @@ class Metrics:
                 "specificity": BinarySpecificity(),
             }
         ).to(device)
-        self.context = {"subset": subset, "fold": fold}
+        self.subset = subset
+        self.fold = fold
         self.dataset_length = dataset_length
         self.running_loss = torch.tensor(0.0)
         self.saved_metrics: dict[str, list[Any]] = {
@@ -80,9 +84,39 @@ class Metrics:
         self.collection.reset()
         self.running_loss = torch.tensor(0.0)
 
+    def write_metrics(self, dir: Path) -> None:
+        """Save the metrics as a csv file"""
+        # Convert cm to 4 variables for saving as CSV
+        df = (
+            pl.LazyFrame(
+                self.saved_metrics,
+            )
+            .with_columns(
+                pl.col("cm").map_elements(lambda x: x[0][1], return_dtype=pl.Int32).alias("TP"),
+                pl.col("cm").map_elements(lambda x: x[0][1], return_dtype=pl.Int32).alias("FP"),
+                pl.col("cm").map_elements(lambda x: x[1][0], return_dtype=pl.Int32).alias("FN"),
+                pl.col("cm").map_elements(lambda x: x[1][1], return_dtype=pl.Int32).alias("TN"),
+            )
+            .drop("cm")
+            .collect()
+        )
+        df.write_csv(dir / f"{self.fold}_{self.subset}.csv")
+        pass
 
-def confusion_matrix(calculated_metrics: dict[str, Any], key: str = "cm") -> go.Figure:
-    cm = calculated_metrics[key].to("cpu")
+    def best_metrics(self) -> dict[str, Any]:
+        best_metrics: dict[str, Any] = {}
+        for key, val in self.saved_metrics.items():
+            if key in ["cm", "epoch"]:
+                continue
+            elif key == "loss":
+                best_metrics[key] = min(val)
+            else:
+                best_metrics[key] = max(val)
+        return best_metrics
+
+
+def confusion_matrix(cm) -> go.Figure:
+    normalized_cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
     fig = px.imshow(
         cm,
         labels=dict(x="Predicted", y="Actual"),
