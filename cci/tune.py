@@ -117,6 +117,7 @@ def objective(trial: optuna.Trial):
 
     study_name = trial.study.study_name
     oocha_dir = trial.study.user_attrs["oocha_dir"]
+    epochs = trial.study.user_attrs["epochs"]
 
     run = {
         "experiment": study_name,
@@ -165,7 +166,7 @@ def objective(trial: optuna.Trial):
             val_metrics,
             train_loader,
             val_loader,
-            epochs=100,
+            epochs,
         )
 
         running_loss += min(val_metrics.saved_metrics["loss"])
@@ -203,7 +204,7 @@ def objective(trial: optuna.Trial):
     return running_f1 / splits, running_bac / splits, running_loss / splits
 
 
-def tune(study_name: str, n_trials: int, oocha_dir: str):
+def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str):
     storage = optuna.storages.RDBStorage(
         f"sqlite:///{RESULTS_DIR}/optuna.db",
         heartbeat_interval=10,
@@ -217,6 +218,7 @@ def tune(study_name: str, n_trials: int, oocha_dir: str):
         load_if_exists=True,
     )
     study.set_user_attr("oocha_dir", oocha_dir)
+    study.set_user_attr("epochs", epochs)
     study.set_metric_names(["f1", "bac", "loss"])
     study.optimize(
         objective,
