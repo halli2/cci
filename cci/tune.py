@@ -285,9 +285,10 @@ def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: f
     for i, _ in enumerate(dl):
         logger.info("Cached signals", cached=i * 16, total=len(ds))
 
+    logger.info("Starting study", dataset=dataset, study_name=study_name)
     study.optimize(
         objective,
         n_trials=n_trials,
-        show_progress_bar=True,
+        show_progress_bar=False,
         timeout=timeout,
     )
