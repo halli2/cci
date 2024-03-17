@@ -1,4 +1,4 @@
-from .dataset import TransitionDataset
+from .dataset import TransitionDataset, skfold
 from .transforms import CropSample, RandomSample, ToTensor
 
 _all_ = [
@@ -7,4 +7,5 @@ _all_ = [
     "RandomSample",
     "CropSample",
     "create_cache",
+    "skfold",
 ]

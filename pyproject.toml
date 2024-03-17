@@ -3,8 +3,8 @@ name = "cci"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
-    { name = "", email = "" },
-    {name = "Halvor Kvamme", email = "flkz@proton.me"},
+  { name = "", email = "" },
+  { name = "Halvor Kvamme", email = "flkz@proton.me" },
 ]
 dependencies = [
     "numpy>=1.26.4",
@@ -22,6 +22,7 @@ dependencies = [
     "hiplot>=0.1.33",
     "rerun-sdk>=0.14.1",
     "typer[all]>=0.9.0",
+    "structlog>=24.1.0",
 ]
 requires-python = "==3.11.*"
 readme = "README.md"
@@ -29,9 +30,7 @@ license = { text = "MIT" }
 
 
 [project.optional-dependencies]
-visualize = [
-    "optuna-dashboard>=0.15.0",
-]
+visualize = ["optuna-dashboard>=0.15.0"]
 [tool.ruff]
 line-length = 120
 
@@ -63,7 +62,7 @@ mypy_ = "mypy src/"
 lint.composite = ["mypy_", "bandit_"]
 fmt = "ruff format src"
 
-cci = "python src/cci"
+cci = "python cci"
 
 [tool.pdm.plugin.torch]
 dependencies = ["torch==2.2.1", "torchvision==0.17.1"]
@@ -75,5 +74,3 @@ rocm-versions = ["5.7"]
 
 enable-cuda = true
 cuda-versions = ["cu118"]
-
-
