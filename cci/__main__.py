@@ -8,7 +8,7 @@ app = typer.Typer()
 
 @app.command()
 def tune_mlp(study_name: str, oocha_dir: str, n_trials: int = 200, epochs: int = 1000) -> None:
-    tune(study_name, n_trials, oocha_dir)
+    tune(study_name, n_trials, epochs, oocha_dir)
 
 
 @app.command()
