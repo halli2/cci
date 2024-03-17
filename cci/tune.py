@@ -37,7 +37,7 @@ def fit(
     val_loader: DataLoader,
     epochs: int,
 ) -> tuple[Metrics, Metrics, Dict[str, Any]]:
-    table = Table("Training model)
+    table = Table("Training model")
     metric_info = Progress(TextColumn("{task.description}"))
     task_metrics = metric_info.add_task("Metrics")
     progress = Progress(*Progress.get_default_columns(), TimeElapsedColumn())
