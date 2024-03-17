@@ -81,9 +81,14 @@ class EpochInfoLogger(Callback):
         training_values = last_metrics["training"]
         validation_values = last_metrics["validation"]
         if epoch % self.frequency == 0:
-            logger.debug("Epoch", epoch=epoch)
-            logger.debug("Training", accuracy=training_values["acc"], loss=training_values["loss"])
-            logger.debug("Validation", accuracy=validation_values["acc"], loss=validation_values["loss"])
+            logger.debug(
+                "Epoch Info",
+                epoch=epoch,
+                training_accuracy=training_values["acc"],
+                training_loss=training_values["loss"],
+                validation_accuracy=validation_values["acc"],
+                validaion_loss=validation_values["loss"],
+            )
 
 
 def fit(
