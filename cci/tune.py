@@ -1,29 +1,89 @@
 import json
+import structlog
 from typing import Any, Dict
 
 import numpy as np
 import optuna
+from optuna.storages import JournalFileStorage, JournalStorage
 import torch
 from dataset import skfold
 from deepdiff import DeepHash
 from metrics import Metrics
-from models import mlp
-from rich.live import Live
-from rich.progress import (
-    Progress,
-    TextColumn,
-    TimeElapsedColumn,
-    track,
-)
-from rich.table import Table
+from models import mlp, cnn
+from dataset import TransitionDataset
 from torch import nn, optim, tensor
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
+import polars as pl
 from utils import project_dir
+from dataset import CropSample
+from pathlib import Path
+from models.layers import reset_module_weights
 
 RESULTS_DIR = project_dir() / "results"
+DATA_DIR = project_dir() / "data"
 SAMPLE_LENGTH = 1500
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+class Callback:
+    def __init__(self):
+        pass
+
+    def on_training_start(self, **kwargs):
+        pass
+
+    def on_epoch_end(self, **kwargs):
+        pass
+
+
+class EarlyStopping(Callback):
+    def __init__(self, patience=200):
+        super().__init__()
+        self.patience = patience
+        self.best_epoch = 0.0
+        self.best_loss = np.inf
+
+    def on_epoch_end(self, last_metrics, epoch, **kwargs):
+        loss = last_metrics["validation"]["loss"]
+        if loss < self.best_loss:
+            self.best_epoch = epoch
+            self.best_loss = loss
+        elif epoch - self.best_epoch > self.patience:
+            return {"stop": True}
+
+
+class ModelCheckPoint(Callback):
+    def __init__(self, fpath: Path):
+        super().__init__()
+        self.best_loss = 0.0
+        self.best_loss = np.inf
+        self.fpath = fpath
+
+    def on_epoch_end(self, last_metrics, model, **kwargs):
+        loss = last_metrics["validation"]["loss"]
+        if loss < self.best_loss:
+            self.best_loss = loss
+            torch.save(model.state_dict(), self.fpath)
+
+
+class EpochInfoLogger(Callback):
+    def __init__(self, frequency=10):
+        super().__init__()
+        self.frequency = frequency
+
+    def on_training_start(self, epochs, **kwargs):
+        logger = structlog.get_logger()
+        logger.info("Epochs", epochs=epochs)
+
+    def on_epoch_end(self, last_metrics, epoch, **kwargs):
+        logger = structlog.get_logger()
+        training_values = last_metrics["training"]
+        validation_values = last_metrics["validation"]
+        if epoch % self.frequency == 0:
+            logger.debug("Epoch", epoch=epoch)
+            logger.debug("Training", accuracy=training_values["acc"], loss=training_values["loss"])
+            logger.debug("Validation", accuracy=validation_values["acc"], loss=validation_values["loss"])
 
 
 def fit(
@@ -35,95 +95,87 @@ def fit(
     val_metrics: Metrics,
     train_loader: DataLoader,
     val_loader: DataLoader,
+    callbacks: list[Callback],
     epochs: int,
-) -> tuple[Metrics, Metrics, Dict[str, Any]]:
-    table = Table("Training model")
-    metric_info = Progress(TextColumn("{task.description}"))
-    task_metrics = metric_info.add_task("Metrics")
-    progress = Progress(*Progress.get_default_columns(), TimeElapsedColumn())
-    task_epoch = progress.add_task("Epochs")
-    task_train = progress.add_task("Train")
-    task_validation = progress.add_task("Validation")
-    table.add_row(progress)
-    table.add_row(metric_info)
+) -> tuple[Metrics, Metrics, Dict[Any, Any]]:
+    status = {"stop": False}
+    for callback in callbacks:
+        cb_res = callback.on_training_start(epochs=epochs, model=model)
+        if cb_res is not None:
+            status.update(cb_res)
 
-    best_loss = np.inf
-    best_model = model.state_dict()
-    with Live(table):
-        for epoch in progress.track(range(1, epochs + 1), description="Epochs", task_id=task_epoch):
-            progress.reset(task_validation)
-            train_metrics.reset()
-            model.train()
+    for epoch in range(1, epochs + 1):
+        train_metrics.reset()
+        model.train()
 
-            for data in progress.track(train_loader, description="Training", task_id=task_train):
+        for data in train_loader:
+            sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
+            opt.zero_grad()
+            logits = model(sample)
+
+            loss = loss_fn(logits, label.float())
+            loss.backward()
+            opt.step()
+
+            predictions = F.sigmoid(logits)
+            train_metrics.update(predictions, label, loss)
+        train_metrics.save_metrics(epoch)
+
+        # Track weights
+        # track_params_dists(model, run)
+        # track_gradients_dists(model, run)
+
+        val_metrics.reset()
+        model.eval()
+        with torch.no_grad():
+            for data in val_loader:
                 sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
-                opt.zero_grad()
                 logits = model(sample)
 
-                loss = loss_fn(logits, label.float())
-                loss.backward()
-                opt.step()
+                loss = val_loss_fn(logits, label.float())
 
                 predictions = F.sigmoid(logits)
-                train_metrics.update(predictions, label, loss)
-            train_metrics.save_metrics(epoch)
+                val_metrics.update(predictions, label, loss)
+        val_metrics.save_metrics(epoch)
 
-            # Track weights
-            # track_params_dists(model, run)
-            # track_gradients_dists(model, run)
+        last_metrics = {"validation": val_metrics.compute(), "training": train_metrics.compute()}
 
-            val_metrics.reset()
-            model.eval()
-            with torch.no_grad():
-                for data in progress.track(val_loader, description="Validation", task_id=task_validation):
-                    sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
-                    logits = model(sample)
+        for callback in callbacks:
+            cb_res = callback.on_epoch_end(last_metrics=last_metrics, epoch=epoch, model=model)
+            if cb_res is not None:
+                status.update(cb_res)
 
-                    loss = val_loss_fn(logits, label.float())
+        if status["stop"]:
+            break
 
-                    predictions = F.sigmoid(logits)
-                    val_metrics.update(predictions, label, loss)
-            val_metrics.save_metrics(epoch)
-
-            validation_values = val_metrics.compute()
-            training_values = train_metrics.compute()
-            metric_info.update(
-                task_id=task_metrics,
-                description=f"\nTraining\n Acc:{training_values['acc']:.3f}\n Loss{training_values['loss']:.3f}\n"
-                f"Validation\n Acc:{validation_values['acc']:.3f}\n Loss:{validation_values['loss']:.3f}\n",
-            )
-            if validation_values["loss"] < best_loss:
-                best_loss = validation_values["loss"]
-                best_model = model.state_dict()
-
-    return train_metrics, val_metrics, best_model
-
-
-def reset_module_weights(module: nn.Module) -> None:
-    if hasattr(module, "reset_parameters"):
-        module.reset_parameters()
-    else:
-        if hasattr(module, "children"):
-            for child in module.children():
-                reset_module_weights(child)
+    return train_metrics, val_metrics, status
 
 
 def objective(trial: optuna.Trial):
     optimizer_name = trial.suggest_categorical("Optimizer", ["Adam", "RMSprop", "SGD"])
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-    batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32])
-    model_layers = mlp.suggest_model(trial)
-    model = nn.Sequential(*model_layers).to(DEVICE)
-
+    batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64])
     study_name = trial.study.study_name
+
+    match study_name:
+        case "MLP":
+            model_layers = mlp.suggest_model(trial)
+            model = nn.Sequential(*model_layers).to(DEVICE)
+        case "CNN":
+            model = cnn.suggest_model(trial)
+        case _:
+            raise ValueError(f"Study {study_name} is not implemented")
+
     oocha_dir = trial.study.user_attrs["oocha_dir"]
     epochs = trial.study.user_attrs["epochs"]
+    dataset = trial.study.user_attrs["set"]
+    samples = trial.study.user_attrs["samples"]
 
     run = {
         "experiment": study_name,
         "dataset": {
-            "set": "data/clean_df.csv",
-            "samples": 1500,
+            "set": dataset,
+            "samples": samples,
             "preprocessing": {},
             "test_set": {"augmentation": "random_shift"},
         },
@@ -137,7 +189,7 @@ def objective(trial: optuna.Trial):
     splits = 5
     run_dir = RESULTS_DIR / study_name / run_hash
     for fold_idx, (train_loader, val_loader, test_loader) in enumerate(
-        skfold("data/clean_df.csv", oocha_dir, batch_size, n_splits=splits)
+        skfold(DATA_DIR / dataset, oocha_dir, batch_size, n_splits=splits)
     ):
         if fold_idx == 0:
             run["model_arch"] = str(model)
@@ -157,7 +209,8 @@ def objective(trial: optuna.Trial):
         test_metrics = Metrics("test", len(test_loader.dataset), DEVICE, fold_idx)
 
         # Train model
-        train_metrics, val_metrics, best_model = fit(
+        model_path = run_dir / f"{fold_idx}_model.pt"
+        train_metrics, val_metrics, status = fit(
             model,
             opt,
             loss_fn,
@@ -166,6 +219,11 @@ def objective(trial: optuna.Trial):
             val_metrics,
             train_loader,
             val_loader,
+            [
+                EarlyStopping(patience=200),
+                EpochInfoLogger(50),
+                ModelCheckPoint(model_path),
+            ],
             epochs,
         )
 
@@ -173,11 +231,11 @@ def objective(trial: optuna.Trial):
         running_bac += max(val_metrics.saved_metrics["bac"])
         running_f1 += max(val_metrics.saved_metrics["f1"])
 
-        model.load_state_dict(best_model)
+        model.load_state_dict(torch.load(model_path))
         # Test the best model
         model.eval()
         with torch.no_grad():
-            for data in track(test_loader, description="Testing"):
+            for data in test_loader:
                 sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
                 logits = model(sample)
 
@@ -199,17 +257,15 @@ def objective(trial: optuna.Trial):
         # Save result
         with open(run_dir / f"{fold_idx}_results.json", "w") as f:
             json.dump(run, f, skipkeys=True, indent=4)
-        torch.save(model.state_dict(), run_dir / f"{fold_idx}_model.pt")
 
     return running_f1 / splits, running_bac / splits, running_loss / splits
 
 
-def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str):
-    storage = optuna.storages.RDBStorage(
-        f"sqlite:///{RESULTS_DIR}/optuna.db",
-        heartbeat_interval=10,
-        failed_trial_callback=optuna.storages.RetryFailedTrialCallback(),
-    )
+def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: float | None = None):
+    logger = structlog.get_logger()
+    storage = JournalStorage(JournalFileStorage(f"{RESULTS_DIR}/journal.log"))
+
+    dataset = "clean_df.csv"
 
     study = optuna.create_study(
         storage=storage,
@@ -219,9 +275,19 @@ def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str):
     )
     study.set_user_attr("oocha_dir", oocha_dir)
     study.set_user_attr("epochs", epochs)
+    study.set_user_attr("set", dataset)
+    study.set_user_attr("samples", 1500)
     study.set_metric_names(["f1", "bac", "loss"])
+
+    # Cache signals so first trial isn't overly long
+    ds = TransitionDataset(pl.read_csv(DATA_DIR / dataset), oocha_dir, [CropSample(15)])
+    dl = DataLoader(ds, 16)
+    for i, _ in enumerate(dl):
+        logger.info("Cached signals", cached=i * 16, total=len(ds))
+
     study.optimize(
         objective,
         n_trials=n_trials,
         show_progress_bar=True,
+        timeout=timeout,
     )

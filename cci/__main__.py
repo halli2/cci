@@ -1,20 +1,26 @@
 import typer
-from tune import tune
 import structlog
 import sys
+import os
 
 app = typer.Typer()
 
 
 @app.command()
-def tune_mlp(study_name: str, oocha_dir: str, n_trials: int = 200, epochs: int = 1000) -> None:
-    tune(study_name, n_trials, epochs, oocha_dir)
+def tune_model(
+    study_name: str,
+    oocha_dir: str,
+    n_trials: int = 200,
+    epochs: int = 1000,
+    timeout: float | None = None,
+) -> None:
+    from tune import tune
+
+    tune(study_name, n_trials, epochs, oocha_dir, timeout)
 
 
 @app.command()
 def check_gpu():
-    import os
-
     import torch
 
     logger = structlog.get_logger()
@@ -36,6 +42,18 @@ def check_gpu():
         logger.info("Device capabilities", caps=torch.cuda.get_device_capability())
     except AssertionError as e:
         logger.warning(e)
+
+
+@app.command()
+def optuna_dashboard(storage=None, host="127.0.0.1", port=8080):
+    from optuna_dashboard import run_server
+    from optuna.storages import JournalFileStorage, JournalStorage
+    from utils import project_dir
+
+    if storage is None:
+        storage = project_dir() / "results/journal.log"
+    journal = JournalStorage(JournalFileStorage(str(storage)))
+    run_server(journal, host=host, port=port)
 
 
 def main():

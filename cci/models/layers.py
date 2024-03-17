@@ -10,3 +10,12 @@ class LambdaLayer(nn.Module):
 
     def forward(self, x) -> Tensor:
         return self.fn(x)
+
+
+def reset_module_weights(module: nn.Module) -> None:
+    if hasattr(module, "reset_parameters"):
+        module.reset_parameters()
+    else:
+        if hasattr(module, "children"):
+            for child in module.children():
+                reset_module_weights(child)
