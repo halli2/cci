@@ -2,6 +2,8 @@ import typer
 import structlog
 import sys
 import os
+from typing import Optional
+from typing_extensions import Annotated
 
 app = typer.Typer()
 
@@ -12,7 +14,7 @@ def tune_model(
     oocha_dir: str,
     n_trials: int = 200,
     epochs: int = 1000,
-    timeout: float | None = None,
+    timeout: Annotated[Optional[float], typer.Option(help="In seconds")] = None,
 ) -> None:
     from tune import tune
 

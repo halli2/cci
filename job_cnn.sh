@@ -8,6 +8,7 @@
 
 uenv verbose miniconda3-py311 cudnn-12.x-9.0.0 cuda-12.3.2
 
-pdm run cci tune-model "CNN" /home/stud/hnkvamme/BMDLab/data/oocha --timeout 24h
+# Timeout of 24H
+pdm run cci tune-model "CNN" /home/stud/hnkvamme/BMDLab/data/oocha --timeout 86400
 
 echo "Finished"
