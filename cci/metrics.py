@@ -71,12 +71,12 @@ class Metrics:
         computed_metrics = self.compute()
         for key, value in computed_metrics.items():
             if key == "cm":
-                val = value.detach().numpy().tolist()
+                val = value.detach().cpu().numpy().tolist()
             else:
-                val = value.detach().item()
+                val = value.detach().cpu().item()
             self.saved_metrics[key].append(val)
         self.saved_metrics["bac"].append(
-            ((computed_metrics["recall"] + computed_metrics["specificity"]) / 2).detach().item()
+            ((computed_metrics["recall"] + computed_metrics["specificity"]) / 2).detach().cpu().item()
         )
         self.saved_metrics["epoch"].append(epoch)
 
