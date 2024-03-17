@@ -20,7 +20,7 @@ def check_gpu():
     logger = structlog.get_logger()
 
     try:
-        logger.info("GPU", os.environ["CUDA_VISIBLE_DEVICES"])
+        logger.info("GPU", env=os.environ["CUDA_VISIBLE_DEVICES"])
     except KeyError as e:
         logger.warning(f"Environment variable not set: {e}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
