@@ -162,7 +162,7 @@ def objective(trial: optuna.Trial):
             model_layers = mlp.suggest_model(trial)
             model = nn.Sequential(*model_layers).to(DEVICE)
         case "CNN":
-            model = cnn.suggest_model(trial)
+            model = cnn.suggest_model(trial).to(DEVICE)
         case _:
             raise ValueError(f"Study {study_name} is not implemented")
 
