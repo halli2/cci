@@ -37,7 +37,7 @@ def fit(
     val_loader: DataLoader,
     epochs: int,
 ) -> tuple[Metrics, Metrics, Dict[str, Any]]:
-    table = Table("Training model: TODO")
+    table = Table("Training model)
     metric_info = Progress(TextColumn("{task.description}"))
     task_metrics = metric_info.add_task("Metrics")
     progress = Progress(*Progress.get_default_columns(), TimeElapsedColumn())
@@ -116,6 +116,7 @@ def objective(trial: optuna.Trial):
     model = nn.Sequential(*model_layers).to(DEVICE)
 
     study_name = trial.study.study_name
+    oocha_dir = trial.study.user_attrs["oocha_dir"]
 
     run = {
         "experiment": study_name,
@@ -135,7 +136,7 @@ def objective(trial: optuna.Trial):
     splits = 5
     run_dir = RESULTS_DIR / study_name / run_hash
     for fold_idx, (train_loader, val_loader, test_loader) in enumerate(
-        skfold("data/clean_df.csv", trial.user_attrs["oocha_dir"], batch_size, n_splits=splits)
+        skfold("data/clean_df.csv", oocha_dir, batch_size, n_splits=splits)
     ):
         if fold_idx == 0:
             run["model_arch"] = str(model)
@@ -193,8 +194,11 @@ def objective(trial: optuna.Trial):
             "best_train": train_metrics.best_metrics(),
             "best_val": val_metrics.best_metrics(),
         }
+
+        # Save result
         with open(run_dir / f"{fold_idx}_results.json", "w") as f:
             json.dump(run, f, skipkeys=True, indent=4)
+        torch.save(model.state_dict(), run_dir / f"{fold_idx}_model.pt")
 
     return running_f1 / splits, running_bac / splits, running_loss / splits
 

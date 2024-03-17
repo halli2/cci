@@ -49,7 +49,6 @@ def main():
             structlog.processors.JSONRenderer(),
         ]
     structlog.configure()
-    print(structlog.get_config())
     app()
 
 
