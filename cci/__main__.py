@@ -47,13 +47,26 @@ def check_gpu():
 
 
 @app.command()
-def optuna_dashboard(storage=None, host="127.0.0.1", port=8080):
+def viewer():
+    import viewer
+    from plotly_resampler import register_plotly_resampler
+
+    register_plotly_resampler()
+
+    viewer.viewer()
+
+
+@app.command()
+def optuna_dashboard(
+    journal_path: str = "results/journal.log",
+    host="127.0.0.1",
+    port=8080,
+):
     from optuna_dashboard import run_server
     from optuna.storages import JournalFileStorage, JournalStorage
     from utils import project_dir
 
-    if storage is None:
-        storage = project_dir() / "results/journal.log"
+    storage = project_dir() / journal_path
     journal = JournalStorage(JournalFileStorage(str(storage)))
     run_server(journal, host=host, port=port)
 

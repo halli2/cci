@@ -1,5 +1,6 @@
 data/
 results/
+results_go/
 .aim/
 
 # Byte-compiled / optimized / DLL files

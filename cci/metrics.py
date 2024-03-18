@@ -101,7 +101,6 @@ class Metrics:
             .collect()
         )
         df.write_csv(dir / f"{self.fold}_{self.subset}.csv")
-        pass
 
     def best_metrics(self) -> dict[str, Any]:
         best_metrics: dict[str, Any] = {}
@@ -118,10 +117,10 @@ class Metrics:
 def confusion_matrix(cm) -> go.Figure:
     normalized_cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
     fig = px.imshow(
-        cm,
+        normalized_cm,
         labels=dict(x="Predicted", y="Actual"),
         x=["Good (0)", "Bad (1)"],
         y=["Good (0)", "Bad (1)"],
-        text_auto=True,
+        text_auto=cm,
     )
     return fig

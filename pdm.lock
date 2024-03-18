@@ -5,7 +5,7 @@
 groups = ["default", "dev", "lsp", "visualize"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:5e1f59ea1ff858309a9f4c5636f043f613b587fd1edaa6e0d8ee1125f8773036"
+content_hash = "sha256:170cf6f3ec3c0f18933ec345c76c37bea0bdd02bacd810b451c3fb78addb99b6"
 
 [[package]]
 name = "absl-py"
@@ -464,6 +464,61 @@ files = [
 ]
 
 [[package]]
+name = "dash"
+version = "2.16.1"
+requires_python = ">=3.8"
+summary = "A Python framework for building reactive web-apps. Developed by Plotly."
+groups = ["default"]
+dependencies = [
+    "Flask<3.1,>=1.0.4",
+    "Werkzeug<3.1",
+    "dash-core-components==2.0.0",
+    "dash-html-components==2.0.0",
+    "dash-table==5.0.0",
+    "importlib-metadata",
+    "nest-asyncio",
+    "plotly>=5.0.0",
+    "requests",
+    "retrying",
+    "setuptools",
+    "typing-extensions>=4.1.1",
+]
+files = [
+    {file = "dash-2.16.1-py3-none-any.whl", hash = "sha256:8a9d2a618e415113c0b2a4d25d5dc4df5cb921f733b33dde75559db2316b1df1"},
+    {file = "dash-2.16.1.tar.gz", hash = "sha256:b2871d6b8d4c9dfd0a64f89f22d001c93292910b41d92d9ff2bb424a28283976"},
+]
+
+[[package]]
+name = "dash-core-components"
+version = "2.0.0"
+summary = "Core component suite for Dash"
+groups = ["default"]
+files = [
+    {file = "dash_core_components-2.0.0-py3-none-any.whl", hash = "sha256:52b8e8cce13b18d0802ee3acbc5e888cb1248a04968f962d63d070400af2e346"},
+    {file = "dash_core_components-2.0.0.tar.gz", hash = "sha256:c6733874af975e552f95a1398a16c2ee7df14ce43fa60bb3718a3c6e0b63ffee"},
+]
+
+[[package]]
+name = "dash-html-components"
+version = "2.0.0"
+summary = "Vanilla HTML components for Dash"
+groups = ["default"]
+files = [
+    {file = "dash_html_components-2.0.0-py3-none-any.whl", hash = "sha256:b42cc903713c9706af03b3f2548bda4be7307a7cf89b7d6eae3da872717d1b63"},
+    {file = "dash_html_components-2.0.0.tar.gz", hash = "sha256:8703a601080f02619a6390998e0b3da4a5daabe97a1fd7a9cebc09d015f26e50"},
+]
+
+[[package]]
+name = "dash-table"
+version = "5.0.0"
+summary = "Dash table"
+groups = ["default"]
+files = [
+    {file = "dash_table-5.0.0-py3-none-any.whl", hash = "sha256:19036fa352bb1c11baf38068ec62d172f0515f73ca3276c79dee49b95ddc16c9"},
+    {file = "dash_table-5.0.0.tar.gz", hash = "sha256:18624d693d4c8ef2ddec99a6f167593437a7ea0bf153aa20f318c170c5bc7308"},
+]
+
+[[package]]
 name = "debugpy"
 version = "1.8.1"
 requires_python = ">=3.8"
@@ -487,20 +542,6 @@ groups = ["default"]
 files = [
     {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
-]
-
-[[package]]
-name = "deepdiff"
-version = "6.7.1"
-requires_python = ">=3.7"
-summary = "Deep Difference and Search of any Python object/data. Recreate objects by adding adding deltas to each other."
-groups = ["default"]
-dependencies = [
-    "ordered-set<4.2.0,>=4.0.2",
-]
-files = [
-    {file = "deepdiff-6.7.1-py3-none-any.whl", hash = "sha256:58396bb7a863cbb4ed5193f548c56f18218060362311aa1dc36397b2f25108bd"},
-    {file = "deepdiff-6.7.1.tar.gz", hash = "sha256:b367e6fa6caac1c9f500adc79ada1b5b1242c50d5f716a1a4362030197847d30"},
 ]
 
 [[package]]
@@ -740,6 +781,20 @@ groups = ["default"]
 files = [
     {file = "idna-3.6-py3-none-any.whl", hash = "sha256:c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f"},
     {file = "idna-3.6.tar.gz", hash = "sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca"},
+]
+
+[[package]]
+name = "importlib-metadata"
+version = "7.0.2"
+requires_python = ">=3.8"
+summary = "Read metadata from Python packages"
+groups = ["default"]
+dependencies = [
+    "zipp>=0.5",
+]
+files = [
+    {file = "importlib_metadata-7.0.2-py3-none-any.whl", hash = "sha256:f4bc4c0c070c490abf4ce96d715f68e95923320370efb66143df00199bb6c100"},
+    {file = "importlib_metadata-7.0.2.tar.gz", hash = "sha256:198f568f3230878cb1b44fbd7975f87906c22336dba2e4a7f05278c281fbd792"},
 ]
 
 [[package]]
@@ -1750,14 +1805,23 @@ files = [
 ]
 
 [[package]]
-name = "ordered-set"
-version = "4.1.0"
-requires_python = ">=3.7"
-summary = "An OrderedSet is a custom MutableSet that remembers its order, so that every"
+name = "orjson"
+version = "3.9.15"
+requires_python = ">=3.8"
+summary = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy"
 groups = ["default"]
 files = [
-    {file = "ordered-set-4.1.0.tar.gz", hash = "sha256:694a8e44c87657c59292ede72891eb91d34131f6531463aab3009191c77364a8"},
-    {file = "ordered_set-4.1.0-py3-none-any.whl", hash = "sha256:046e1132c71fcf3330438a539928932caf51ddbc582496833e23de611de14562"},
+    {file = "orjson-3.9.15-cp311-cp311-macosx_10_15_x86_64.macosx_11_0_arm64.macosx_10_15_universal2.whl", hash = "sha256:c8e8fe01e435005d4421f183038fc70ca85d2c1e490f51fb972db92af6e047c2"},
+    {file = "orjson-3.9.15-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:87f1097acb569dde17f246faa268759a71a2cb8c96dd392cd25c668b104cad2f"},
+    {file = "orjson-3.9.15-cp311-cp311-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:ff0f9913d82e1d1fadbd976424c316fbc4d9c525c81d047bbdd16bd27dd98cfc"},
+    {file = "orjson-3.9.15-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:8055ec598605b0077e29652ccfe9372247474375e0e3f5775c91d9434e12d6b1"},
+    {file = "orjson-3.9.15-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:d6768a327ea1ba44c9114dba5fdda4a214bdb70129065cd0807eb5f010bfcbb5"},
+    {file = "orjson-3.9.15-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:12365576039b1a5a47df01aadb353b68223da413e2e7f98c02403061aad34bde"},
+    {file = "orjson-3.9.15-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:71c6b009d431b3839d7c14c3af86788b3cfac41e969e3e1c22f8a6ea13139404"},
+    {file = "orjson-3.9.15-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:e18668f1bd39e69b7fed19fa7cd1cd110a121ec25439328b5c89934e6d30d357"},
+    {file = "orjson-3.9.15-cp311-none-win32.whl", hash = "sha256:62482873e0289cf7313461009bf62ac8b2e54bc6f00c6fabcde785709231a5d7"},
+    {file = "orjson-3.9.15-cp311-none-win_amd64.whl", hash = "sha256:b3d336ed75d17c7b1af233a6561cf421dee41d9204aa3cfcc6c9c65cd5bb69a8"},
+    {file = "orjson-3.9.15.tar.gz", hash = "sha256:95cae920959d772f30ab36d3b25f83bb0f3be671e986c72ce22f8fa700dae061"},
 ]
 
 [[package]]
@@ -1910,6 +1974,25 @@ dependencies = [
 files = [
     {file = "plotly-5.20.0-py3-none-any.whl", hash = "sha256:837a9c8aa90f2c0a2f0d747b82544d014dc2a2bdde967b5bb1da25b53932d1a9"},
     {file = "plotly-5.20.0.tar.gz", hash = "sha256:bf901c805d22032cfa534b2ff7c5aa6b0659e037f19ec1e0cca7f585918b5c89"},
+]
+
+[[package]]
+name = "plotly-resampler"
+version = "0.9.2"
+requires_python = ">=3.7.1,<4.0.0"
+summary = "Visualizing large time series with plotly"
+groups = ["default"]
+dependencies = [
+    "dash>=2.9.0",
+    "numpy>=1.24; python_version >= \"3.11\"",
+    "orjson<4.0.0,>=3.8.0",
+    "pandas>=1",
+    "plotly<6.0.0,>=5.5.0",
+    "tsdownsample==0.1.2",
+]
+files = [
+    {file = "plotly_resampler-0.9.2-py3-none-any.whl", hash = "sha256:72ced21696de5eb08ee6dae53eacd279eaac83d5500a04c410c3262c3bec7462"},
+    {file = "plotly_resampler-0.9.2.tar.gz", hash = "sha256:abddac809931c157f5982d3398b68cc256786e75de33878a84060f57d886b471"},
 ]
 
 [[package]]
@@ -2406,6 +2489,19 @@ files = [
     {file = "rerun_sdk-0.14.1-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:2c31f8c4c1ba2a4b1109c5f827ae56ccf30acae8caa0ff90bd614014a595a4b0"},
     {file = "rerun_sdk-0.14.1-cp38-abi3-manylinux_2_31_x86_64.whl", hash = "sha256:302e9cd90ea5e1fab9cf0b03399e620de3b0699b7ea063b5958743444a314985"},
     {file = "rerun_sdk-0.14.1-cp38-abi3-win_amd64.whl", hash = "sha256:499aab1595422b729ad17c7f5cd402c1f5b31b52b0aea169d6f5ebbccc0fa75d"},
+]
+
+[[package]]
+name = "retrying"
+version = "1.3.4"
+summary = "Retrying"
+groups = ["default"]
+dependencies = [
+    "six>=1.7.0",
+]
+files = [
+    {file = "retrying-1.3.4-py3-none-any.whl", hash = "sha256:8cc4d43cb8e1125e0ff3344e9de678fefd85db3b750b81b2240dc0183af37b35"},
+    {file = "retrying-1.3.4.tar.gz", hash = "sha256:345da8c5765bd982b1d1915deb9102fd3d1f7ad16bd84a9700b85f64d24e8f3e"},
 ]
 
 [[package]]
@@ -2933,6 +3029,31 @@ files = [
 ]
 
 [[package]]
+name = "tsdownsample"
+version = "0.1.2"
+requires_python = ">=3.7"
+summary = "Time series downsampling in rust"
+groups = ["default"]
+dependencies = [
+    "numpy",
+]
+files = [
+    {file = "tsdownsample-0.1.2-cp311-cp311-macosx_10_7_x86_64.whl", hash = "sha256:0406fb5d33f881f9d06f974ec8c915c0c848dd867422d4d11be87d7e536385ca"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:16458e6e82ffa34d900f431aba48918f5c44feda1c335080a54877dec9c16e60"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:480799c7f1ccff0c1b18b6c469558c9c774450bb631a4d6c2fb98c43756ef8e9"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9df5d888c79ac7e3129ad61becd9070814560c6607c759b300302086b19e639e"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c9e55d3ab482247f76a0edc29378ccdf3bc2a8e20b9b303b5e6da74eae953423"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-manylinux_2_24_armv7l.whl", hash = "sha256:f8892cee114f7d2d8b59f127b3f7ae63173ad7abc4ef2c7486854055d7c79f5f"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-manylinux_2_24_ppc64le.whl", hash = "sha256:aadec728b972f4c2bf19c27f39824118971ae36983e7c8d09269a18a15f6f194"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-manylinux_2_24_s390x.whl", hash = "sha256:12ca7dce72aa6c12cb65f690d1179b0b140e0236202add0601e56c417a9cb9ad"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:2b14bb78ab1a375edc87e7535aedd6e5d3d0f0ebf4cb98b2bff2c3a183797187"},
+    {file = "tsdownsample-0.1.2-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:476ecc03172aad8076143d6a8b347dc2214c2f858a6231fab863ba50be4a01e9"},
+    {file = "tsdownsample-0.1.2-cp311-none-win32.whl", hash = "sha256:91efdbccbaf0e6db51f3c3fc6191063033c86a718beef6c2c4b66593180525fb"},
+    {file = "tsdownsample-0.1.2-cp311-none-win_amd64.whl", hash = "sha256:8295452fd49ca445907ab5314f3c9ac80ca02bb2cf079d278502dfeadaa28dca"},
+    {file = "tsdownsample-0.1.2.tar.gz", hash = "sha256:9da0b8f8859e9651910cc150bc5115bf5d1890d8ebee12bf57bd1bb016a0112a"},
+]
+
+[[package]]
 name = "typer"
 version = "0.9.0"
 requires_python = ">=3.6"
@@ -3119,4 +3240,15 @@ groups = ["default"]
 files = [
     {file = "widgetsnbextension-4.0.10-py3-none-any.whl", hash = "sha256:d37c3724ec32d8c48400a435ecfa7d3e259995201fbefa37163124a9fcb393cc"},
     {file = "widgetsnbextension-4.0.10.tar.gz", hash = "sha256:64196c5ff3b9a9183a8e699a4227fb0b7002f252c814098e66c4d1cd0644688f"},
+]
+
+[[package]]
+name = "zipp"
+version = "3.18.1"
+requires_python = ">=3.8"
+summary = "Backport of pathlib-compatible object wrapper for zip files"
+groups = ["default"]
+files = [
+    {file = "zipp-3.18.1-py3-none-any.whl", hash = "sha256:206f5a15f2af3dbaee80769fb7dc6f249695e940acca08dfb2a4769fe61e538b"},
+    {file = "zipp-3.18.1.tar.gz", hash = "sha256:2884ed22e7d8961de1c9a05142eb69a247f120291bc0206a00a7642f09b5b715"},
 ]

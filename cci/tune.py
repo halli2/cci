@@ -1,24 +1,21 @@
 import json
-import structlog
+from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
 import optuna
-from optuna.storages import JournalFileStorage, JournalStorage
+import polars as pl
+import structlog
 import torch
-from dataset import skfold
-from deepdiff import DeepHash
+from dataset import CropSample, TransitionDataset, skfold
 from metrics import Metrics
-from models import mlp, cnn
-from dataset import TransitionDataset
+from models import cnn, mlp
+from models.layers import reset_module_weights
+from optuna.storages import JournalFileStorage, JournalStorage
 from torch import nn, optim, tensor
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-import polars as pl
 from utils import project_dir
-from dataset import CropSample
-from pathlib import Path
-from models.layers import reset_module_weights
 
 RESULTS_DIR = project_dir() / "results"
 DATA_DIR = project_dir() / "data"
@@ -186,13 +183,12 @@ def objective(trial: optuna.Trial):
         },
     }
     run["params"] = trial.params
-    run_hash = DeepHash(run)[run]
 
     running_bac = 0.0
     running_loss = 0.0
     running_f1 = 0.0
     splits = 5
-    run_dir = RESULTS_DIR / study_name / run_hash
+    run_dir = RESULTS_DIR / study_name / str(trial.number)
     for fold_idx, (train_loader, val_loader, test_loader) in enumerate(
         skfold(DATA_DIR / dataset, oocha_dir, batch_size, n_splits=splits)
     ):
@@ -257,6 +253,7 @@ def objective(trial: optuna.Trial):
         run["results"] = {
             "best_train": train_metrics.best_metrics(),
             "best_val": val_metrics.best_metrics(),
+            "test_metrics": test_metrics.saved_metrics,
         }
 
         # Save result
