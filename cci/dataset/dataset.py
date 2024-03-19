@@ -20,7 +20,7 @@ class TransitionDataset(Dataset):
 
     def __init__(
         self,
-        df: pl.DataFrame | Path,
+        df: pl.DataFrame,
         root_dir: str | Path,
         transforms: Optional[List[Callable]] = None,
     ):

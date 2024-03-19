@@ -27,10 +27,10 @@ class Callback:
     def __init__(self):
         pass
 
-    def on_training_start(self, **kwargs):
+    def on_training_start(self, **kwargs) -> None | dict[Any,  Any]:
         pass
 
-    def on_epoch_end(self, **kwargs):
+    def on_epoch_end(self, **kwargs) -> None | dict[Any,  Any]:
         pass
 
 
@@ -92,7 +92,6 @@ def fit(
     model: nn.Module,
     opt: torch.optim.Optimizer,
     loss_fn: nn.BCEWithLogitsLoss,
-    val_loss_fn: nn.BCEWithLogitsLoss,
     train_metrics: Metrics,
     val_metrics: Metrics,
     train_loader: DataLoader,
@@ -101,6 +100,7 @@ def fit(
     epochs: int,
 ) -> tuple[Metrics, Metrics, Dict[Any, Any]]:
     status = {"stop": False}
+    val_loss_fn = nn.BCEWithLogitsLoss(reduction="sum")
     for callback in callbacks:
         cb_res = callback.on_training_start(epochs=epochs, model=model)
         if cb_res is not None:
@@ -112,6 +112,7 @@ def fit(
 
         for data in train_loader:
             sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
+            batch_size = len(label)
             opt.zero_grad()
             logits = model(sample)
 
@@ -120,7 +121,7 @@ def fit(
             opt.step()
 
             predictions = F.sigmoid(logits)
-            train_metrics.update(predictions, label, loss)
+            train_metrics.update(predictions, label, loss * batch_size)
         train_metrics.save_metrics(epoch)
 
         # Track weights
@@ -132,6 +133,7 @@ def fit(
         with torch.no_grad():
             for data in val_loader:
                 sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
+
                 logits = model(sample)
 
                 loss = val_loss_fn(logits, label.float())
@@ -203,7 +205,7 @@ def objective(trial: optuna.Trial):
         loss_fn = nn.BCEWithLogitsLoss(
             pos_weight=tensor(train_loader.dataset.get_pos_weight()),
         )
-        val_loss_fn = nn.BCEWithLogitsLoss()
+        
 
         train_metrics = Metrics("train", len(train_loader.dataset), DEVICE, fold_idx)
         val_metrics = Metrics("val", len(val_loader.dataset), DEVICE, fold_idx)
@@ -215,7 +217,6 @@ def objective(trial: optuna.Trial):
             model,
             opt,
             loss_fn,
-            val_loss_fn,
             train_metrics,
             val_metrics,
             train_loader,
@@ -234,13 +235,14 @@ def objective(trial: optuna.Trial):
 
         model.load_state_dict(torch.load(model_path))
         # Test the best model
+        loss_fn = nn.BCEWithLogitsLoss(reduction="sum")
         model.eval()
         with torch.no_grad():
             for data in test_loader:
                 sample, label = data["signal"].to(DEVICE), data["label"].to(DEVICE)
                 logits = model(sample)
 
-                loss = val_loss_fn(logits, label.float())
+                loss = loss_fn(logits, label.float())
 
                 predictions = F.sigmoid(logits)
                 test_metrics.update(predictions, label, loss)
