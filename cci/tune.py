@@ -266,7 +266,7 @@ def objective(trial: optuna.Trial):
 
 def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: float | None = None):
     logger = structlog.get_logger()
-    RESULTS_DIR.mkdir(exits_ok=True)
+    RESULTS_DIR.mkdir(exist_ok=True)
     storage = JournalStorage(JournalFileStorage(f"{RESULTS_DIR}/journal.log"))
 
     dataset = "clean_df.csv"
