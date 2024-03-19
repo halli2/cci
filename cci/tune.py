@@ -27,10 +27,10 @@ class Callback:
     def __init__(self):
         pass
 
-    def on_training_start(self, **kwargs) -> None | dict[Any,  Any]:
+    def on_training_start(self, **kwargs) -> None | dict[Any, Any]:
         pass
 
-    def on_epoch_end(self, **kwargs) -> None | dict[Any,  Any]:
+    def on_epoch_end(self, **kwargs) -> None | dict[Any, Any]:
         pass
 
 
@@ -205,7 +205,6 @@ def objective(trial: optuna.Trial):
         loss_fn = nn.BCEWithLogitsLoss(
             pos_weight=tensor(train_loader.dataset.get_pos_weight()),
         )
-        
 
         train_metrics = Metrics("train", len(train_loader.dataset), DEVICE, fold_idx)
         val_metrics = Metrics("val", len(val_loader.dataset), DEVICE, fold_idx)
@@ -267,6 +266,7 @@ def objective(trial: optuna.Trial):
 
 def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: float | None = None):
     logger = structlog.get_logger()
+    RESULTS_DIR.mkdir(exits_ok=True)
     storage = JournalStorage(JournalFileStorage(f"{RESULTS_DIR}/journal.log"))
 
     dataset = "clean_df.csv"
