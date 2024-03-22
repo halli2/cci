@@ -11,12 +11,10 @@ dependencies = [
     "polars[pyarrow]>=0.20.15",
     "scipy>=1.12.0",
     "matplotlib>=3.8.3",
-    "tensorboard>=2.16.2",
     "scikit-learn>=1.4.1.post1",
     "plotly>=5.19.0",
-    "pandas>=2.2.1",
     "hiplot>=0.1.33",
-    "rerun-sdk>=0.14.1",
+    "rerun-sdk @ https://build.rerun.io/commit/6cef093/wheels/rerun_sdk-0.15.0a3-cp38-abi3-manylinux_2_31_x86_64.whl",
     "typer[all]>=0.9.0",
     "structlog>=24.1.0",
     "plotly-resampler>=0.9.2",
@@ -25,9 +23,22 @@ requires-python = "==3.11.*"
 readme = "README.md"
 license = { text = "MIT" }
 
+[tool.pdm]
+distribution = false
 
 [project.optional-dependencies]
 visualize = ["optuna-dashboard>=0.15.0"]
+cpu = ["torch==2.2.1+cpu"]
+cuda = ["torch==2.2.1+cu121"]
+rocm = ["torch==2.2.1+rocm5.7"] # NOTE: Currently doesn't work
+
+[[tool.pdm.source]]
+url = "https://download.pytorch.org/whl/torch/"
+verify_ssl = true
+name = "torch"
+include_packages = ["torch"]
+type = "find_links"
+
 [tool.ruff]
 line-length = 120
 
@@ -38,11 +49,7 @@ show_error_codes = true
 warn_redundant_casts = true
 warn_unused_configs = true
 warn_unused_ignores = true
-files = "src"
-
-[tool.pdm]
-plugins = ["pdm-plugin-torch>=23.4.0"]
-distribution = false
+files = "cci"
 
 [tool.pdm.dev-dependencies]
 lsp = [
@@ -54,20 +61,9 @@ lsp = [
 dev = ["bandit>=1.7.6", "mypy>=1.8.0", "ruff>=0.1.11", "nbstripout>=0.7.1"]
 
 [tool.pdm.scripts]
-bandit_ = "bandit --r -ll src"
-mypy_ = "mypy src/"
+bandit_ = "bandit --r -ll cci"
+mypy_ = "mypy cci/"
 lint.composite = ["mypy_", "bandit_"]
-fmt = "ruff format src"
+fmt = "ruff format cci"
 
 cci = "python cci"
-
-[tool.pdm.plugin.torch]
-dependencies = ["torch==2.2.1", "torchvision==0.17.1"]
-lockfile = "torch.lock"
-enable-cpu = true
-
-enable-rocm = true
-rocm-versions = ["5.7"]
-
-enable-cuda = true
-cuda-versions = ["cu118"]
