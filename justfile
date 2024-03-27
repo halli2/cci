@@ -15,3 +15,8 @@ lock-all:
 # install dev deps between cpu|cuda|rocml
 install-dev target:
     pdm install -G visualize -L pdm.{{target}}.lock
+
+# 
+mount-files user:
+    sshfs uis:/bhome/{{ user }} ../bhome/
+    sshfs uis:/home/prosjekt/BMDLab/data/oohca ../oohca/
