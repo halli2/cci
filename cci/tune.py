@@ -269,7 +269,7 @@ def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: f
     RESULTS_DIR.mkdir(exist_ok=True)
     storage = JournalStorage(JournalFileStorage(f"{RESULTS_DIR}/journal.log"))
 
-    dataset = "clean_df.csv"
+    dataset = "test_train_val.csv"
 
     study = optuna.create_study(
         storage=storage,
@@ -284,12 +284,12 @@ def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: f
     study.set_metric_names(["f1", "bac", "loss"])
 
     # Cache signals so first trial isn't overly long
-    ds = TransitionDataset(pl.read_csv(DATA_DIR / dataset), oocha_dir, [CropSample(15)])
-    dl = DataLoader(ds, 16)
-    for i, _ in enumerate(dl):
-        logger.info("Cached signals", cached=i * 16, total=len(ds))
+    # ds = TransitionDataset(pl.read_csv(DATA_DIR / dataset), oocha_dir, [CropSample(15)])
+    # dl = DataLoader(ds, 16)
+    # for i, _ in enumerate(dl):
+      # logger.info("Cached signals", cached=(i+1) * 16, total=len(ds))
 
-    logger.info("Starting study", dataset=dataset, study_name=study_name)
+    # logger.info("Starting study", dataset=dataset, study_name=study_name)
     study.optimize(
         objective,
         n_trials=n_trials,
