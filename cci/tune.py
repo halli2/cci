@@ -61,7 +61,8 @@ class ModelCheckPoint(Callback):
         loss = last_metrics["validation"]["loss"]
         if loss < self.best_loss:
             self.best_loss = loss
-            torch.save(model.state_dict(), self.fpath)
+            torch.jit.script(model).save(self.fpath)
+            # torch.save(model.state_dict(), self.fpath)
 
 
 class EpochInfoLogger(Callback):
@@ -202,7 +203,7 @@ def objective(trial: optuna.Trial):
         # Reset model between folds
         reset_module_weights(model)
         opt = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
-        loss_fn = nn.BCEWithLogitsLoss(
+        loss_fn = nn.BCEWithLogitsLoss(utils
             pos_weight=tensor(train_loader.dataset.get_pos_weight()),
         )
 
@@ -232,7 +233,8 @@ def objective(trial: optuna.Trial):
         running_bac += max(val_metrics.saved_metrics["bac"])
         running_f1 += max(val_metrics.saved_metrics["f1"])
 
-        model.load_state_dict(torch.load(model_path))
+        model = torch.jit.load(model_path)
+        # model.load_state_dict(torch.load(model_path))
         # Test the best model
         loss_fn = nn.BCEWithLogitsLoss(reduction="sum")
         model.eval()
