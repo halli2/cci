@@ -203,7 +203,7 @@ def objective(trial: optuna.Trial):
         # Reset model between folds
         reset_module_weights(model)
         opt = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
-        loss_fn = nn.BCEWithLogitsLoss(utils
+        loss_fn = nn.BCEWithLogitsLoss(
             pos_weight=tensor(train_loader.dataset.get_pos_weight()),
         )
 
@@ -289,7 +289,7 @@ def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: f
     # ds = TransitionDataset(pl.read_csv(DATA_DIR / dataset), oocha_dir, [CropSample(15)])
     # dl = DataLoader(ds, 16)
     # for i, _ in enumerate(dl):
-      # logger.info("Cached signals", cached=(i+1) * 16, total=len(ds))
+    # logger.info("Cached signals", cached=(i+1) * 16, total=len(ds))
 
     # logger.info("Starting study", dataset=dataset, study_name=study_name)
     study.optimize(
