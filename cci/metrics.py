@@ -92,7 +92,7 @@ class Metrics:
                 self.saved_metrics,
             )
             .with_columns(
-                pl.col("cm").map_elements(lambda x: x[0][1], return_dtype=pl.Int32).alias("TP"),
+                pl.col("cm").map_elements(lambda x: x[0][0], return_dtype=pl.Int32).alias("TP"),
                 pl.col("cm").map_elements(lambda x: x[0][1], return_dtype=pl.Int32).alias("FP"),
                 pl.col("cm").map_elements(lambda x: x[1][0], return_dtype=pl.Int32).alias("FN"),
                 pl.col("cm").map_elements(lambda x: x[1][1], return_dtype=pl.Int32).alias("TN"),
