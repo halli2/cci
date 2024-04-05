@@ -161,8 +161,9 @@ def objective(trial: optuna.Trial):
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64])
     study_name = trial.study.study_name
+    model_name = trial.study.user_attrs["model"]
 
-    match study_name:
+    match model_name:
         case "MLP":
             model_layers = mlp.suggest_model(trial)
             model = nn.Sequential(*model_layers).to(DEVICE)
@@ -173,7 +174,7 @@ def objective(trial: optuna.Trial):
 
     oocha_dir = trial.study.user_attrs["oocha_dir"]
     epochs = trial.study.user_attrs["epochs"]
-    dataset = trial.study.user_attrs["set"]
+    dataset = trial.study.user_attrs["dataset"]
     samples = trial.study.user_attrs["samples"]
 
     run = {
@@ -192,6 +193,7 @@ def objective(trial: optuna.Trial):
     running_f1 = 0.0
     splits = 5
     run_dir = RESULTS_DIR / study_name / str(trial.number)
+
     for fold_idx, (train_loader, val_loader, test_loader) in enumerate(
         skfold(DATA_DIR / dataset, oocha_dir, batch_size, n_splits=splits)
     ):
@@ -266,12 +268,19 @@ def objective(trial: optuna.Trial):
     return running_f1 / splits, running_bac / splits, running_loss / splits
 
 
-def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: float | None = None):
-    logger = structlog.get_logger()
+def tune(
+    study_name: str,
+    model_name: str,
+    dataset_name: str,
+    splits: int,
+    n_trials: int,
+    epochs: int,
+    oocha_dir: str,
+    timeout: float | None = None,
+):
+    # logger = structlog.get_logger()
     RESULTS_DIR.mkdir(exist_ok=True)
     storage = JournalStorage(JournalFileStorage(f"{RESULTS_DIR}/journal.log"))
-
-    dataset = "test_train_val.csv"
 
     study = optuna.create_study(
         storage=storage,
@@ -281,8 +290,10 @@ def tune(study_name: str, n_trials: int, epochs: int, oocha_dir: str, timeout: f
     )
     study.set_user_attr("oocha_dir", oocha_dir)
     study.set_user_attr("epochs", epochs)
-    study.set_user_attr("set", dataset)
     study.set_user_attr("samples", 1500)
+    study.set_user_attr("model", model_name)
+    study.set_user_attr("dataset", dataset_name)
+    # study.set_user_attr("model", )
     study.set_metric_names(["f1", "bac", "loss"])
 
     # Cache signals so first trial isn't overly long

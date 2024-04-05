@@ -6,7 +6,7 @@ import numpy as np
 import polars as pl
 import scipy
 import torch
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 
 from utils import project_dir
@@ -83,26 +83,97 @@ def split_train_test(csv: str | Path) -> tuple[pl.DataFrame, pl.DataFrame]:
     return train_val_df, test_df
 
 
+def single_set(
+    csv: str | Path,
+    root_dir: str | Path,
+    batch_size: int,
+    set: str,
+    sample_length=1500,
+    shuffle=True,
+    random_state: int = RANDOM_STATE,
+    random_sample=False,
+):
+    transforms: list[Callable] = [
+        CropSample(sample_length),
+        ToTensor(),
+    ]
+    if random_sample:
+        train_transforms: list[Callable] = [
+            RandomSample(sample_length),
+            ToTensor(),
+        ]
+    else:
+        train_transforms = transforms
+    dataset_folder = project_dir() / "data"
+    test_df = pl.read_csv(dataset_folder / f"{set}_test.csv")
+    train_df = pl.read_csv(dataset_folder / f"{set}_train.csv")
+    val_df = pl.read_csv(dataset_folder / f"{set}_val.csv")
+    test_dataset = TransitionDataset(
+        test_df,
+        root_dir,
+        transforms=[
+            CropSample(sample_length),
+            ToTensor(),
+        ],
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+    )
+    train_dataset = TransitionDataset(
+        train_df,
+        root_dir,
+        transforms=[
+            CropSample(sample_length),
+            ToTensor(),
+        ],
+    )
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+    )
+    val_dataset = TransitionDataset(
+        val_df,
+        root_dir,
+        transforms=[
+            CropSample(sample_length),
+            ToTensor(),
+        ],
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+    )
+    return train_loader, val_loader, test_loader
+
+
 def skfold(
     csv: str | Path,
     root_dir: str | Path,
     batch_size: int,
-    sample_length=1500,
-    n_splits=5,
-    shuffle=True,
+    set: str = "full",
+    sample_length: int = 1500,
+    n_splits: int = 5,
+    shuffle: bool = True,
     random_state: int = RANDOM_STATE,
-    transforms=None,
+    random_sample: bool = False,
 ) -> Generator[
     tuple[DataLoader[TransitionDataset], DataLoader[TransitionDataset], DataLoader[TransitionDataset]], None, None
 ]:
     """Generator for Straitifed K Fold"""
-    if transforms is None:
-        transforms = [
-            CropSample(sample_length),
+    transforms: list[Callable] = [
+        CropSample(sample_length),
+        ToTensor(),
+    ]
+    if random_sample:
+        train_transforms: list[Callable] = [
+            RandomSample(sample_length),
             ToTensor(),
         ]
+    else:
+        train_transforms = transforms
     dataset_folder = project_dir() / "data"
-    test_df = pl.read_csv(dataset_folder / "test.csv")
+    test_df = pl.read_csv(dataset_folder / f"{set}_test.csv")
     test_dataset = TransitionDataset(
         test_df,
         root_dir,
@@ -116,11 +187,10 @@ def skfold(
         batch_size=batch_size,
     )
     for i in range(n_splits):
-        train_df = pl.read_csv(dataset_folder / f"train_{i}.csv")
-        val_df = pl.read_csv(dataset_folder / f"val_{i}.csv")
+        train_df = pl.read_csv(dataset_folder / f"{set}_train_{i}.csv")
+        val_df = pl.read_csv(dataset_folder / f"{set}_val_{i}.csv")
 
-        # RandomSample(sample_length),
-        train_dataset = TransitionDataset(train_df, root_dir, transforms)
+        train_dataset = TransitionDataset(train_df, root_dir, train_transforms)
         val_dataset = TransitionDataset(val_df, root_dir, transforms)
         train_loader = DataLoader(
             train_dataset,

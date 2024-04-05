@@ -11,14 +11,17 @@ app = typer.Typer()
 @app.command()
 def tune_model(
     study_name: str,
+    model_name: str,
+    dataset_name: str,
     oocha_dir: str,
+    n_splits: int = 5,
     n_trials: int = 200,
     epochs: int = 1000,
     timeout: Annotated[Optional[float], typer.Option(help="In seconds")] = None,
 ) -> None:
     from tune import tune
 
-    tune(study_name, n_trials, epochs, oocha_dir, timeout)
+    tune(study_name, model_name, dataset_name, n_splits, n_trials, epochs, oocha_dir, timeout)
 
 
 @app.command()
