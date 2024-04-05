@@ -9,7 +9,7 @@ import torch
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from torch.utils.data import DataLoader, Dataset
 
-from ..utils import project_dir
+from utils import project_dir
 
 from .transforms import CropSample, RandomSample, ToTensor
 
