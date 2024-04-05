@@ -182,7 +182,7 @@ def objective(trial: optuna.Trial):
             "set": dataset,
             "samples": samples,
             "preprocessing": {},
-            "test_set": {"augmentation": "random_shift"},
+            # "test_set": {"augmentation": "random_shift"},
         },
     }
     run["params"] = trial.params
