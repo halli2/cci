@@ -191,7 +191,7 @@ def objective(trial: optuna.Trial):
     running_bac = 0.0
     running_loss = 0.0
     running_f1 = 0.0
-    splits = 5
+    splits = trial.study.user_attrs["splits"]
     run_dir = RESULTS_DIR / study_name / str(trial.number)
 
     for fold_idx, (train_loader, val_loader, test_loader) in enumerate(
@@ -213,7 +213,7 @@ def objective(trial: optuna.Trial):
         val_metrics = Metrics("val", len(val_loader.dataset), DEVICE, fold_idx)
         test_metrics = Metrics("test", len(test_loader.dataset), DEVICE, fold_idx)
 
-        # Train model
+        # Train modeln_splits
         model_path = run_dir / f"{fold_idx}_model.pt"
         train_metrics, val_metrics, status = fit(
             model,
@@ -294,6 +294,7 @@ def tune(
     study.set_user_attr("samples", 1500)
     study.set_user_attr("model", model_name)
     study.set_user_attr("dataset", dataset_name)
+    study.set_user_attr("splits", splits)
     # study.set_user_attr("model", )
     #study.set_metric_names(["f1", "bac", "loss"])
     study.set_metric_names(["bac"])

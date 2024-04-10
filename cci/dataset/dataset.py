@@ -195,7 +195,7 @@ def skfold(
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
-            shuffle=True,
+            shuffle=shuffle,
         )
         val_loader = DataLoader(
             val_dataset,
