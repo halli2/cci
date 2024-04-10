@@ -265,7 +265,8 @@ def objective(trial: optuna.Trial):
         with open(run_dir / f"{fold_idx}_results.json", "w") as f:
             json.dump(run, f, skipkeys=True, indent=4)
 
-    return running_f1 / splits, running_bac / splits, running_loss / splits
+    # return running_f1 / splits, running_bac / splits, running_loss / splits
+    return running_bac / splits
 
 
 def tune(
@@ -285,7 +286,7 @@ def tune(
     study = optuna.create_study(
         storage=storage,
         study_name=study_name,
-        directions=["maximize", "maximize", "minimize"],
+        directions=["maximize"],
         load_if_exists=True,
     )
     study.set_user_attr("oocha_dir", oocha_dir)
@@ -294,7 +295,8 @@ def tune(
     study.set_user_attr("model", model_name)
     study.set_user_attr("dataset", dataset_name)
     # study.set_user_attr("model", )
-    study.set_metric_names(["f1", "bac", "loss"])
+    #study.set_metric_names(["f1", "bac", "loss"])
+    study.set_metric_names(["bac"])
 
     # Cache signals so first trial isn't overly long
     # ds = TransitionDataset(pl.read_csv(DATA_DIR / dataset), oocha_dir, [CropSample(15)])
