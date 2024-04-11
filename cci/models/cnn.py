@@ -38,11 +38,11 @@ def default_model() -> CNNModel:
     return CNNModel(layers)
 
 
-def suggest_model(trial: Trial) -> CNNModel:
+def suggest_model(trial: Trial, max_kernel_size=14) -> CNNModel:
     """Constructs a simple CNN Model with increasing channels and decreasing kernel size"""
     n_cnn = trial.suggest_int("n_cnn", 1, 3)
 
-    kernel_size = 14  # Max kernel size in first layer
+    kernel_size = max_kernel_size # Max kernel size in first layer
     padding = "same"
     channels_in = 1
     layers: list[nn.Module] = []

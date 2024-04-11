@@ -157,9 +157,6 @@ def fit(
 
 
 def objective(trial: optuna.Trial):
-    optimizer_name = trial.suggest_categorical("Optimizer", ["Adam", "RMSprop", "SGD"])
-    lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-    batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64])
     study_name = trial.study.study_name
     model_name = trial.study.user_attrs["model"]
 
@@ -169,6 +166,8 @@ def objective(trial: optuna.Trial):
             model = nn.Sequential(*model_layers).to(DEVICE)
         case "CNN":
             model = cnn.suggest_model(trial).to(DEVICE)
+        case "CNN_bigger_kernel":
+            model = cnn.suggest_model(trial, max_kernel_size=250).to(DEVICE)
         case _:
             raise ValueError(f"Study {study_name} is not implemented")
 
@@ -195,7 +194,7 @@ def objective(trial: optuna.Trial):
     run_dir = RESULTS_DIR / study_name / str(trial.number)
 
     for fold_idx, (train_loader, val_loader, test_loader) in enumerate(
-        skfold(DATA_DIR / dataset, oocha_dir, batch_size, n_splits=splits)
+        skfold(DATA_DIR / dataset, oocha_dir, batch_size=32, n_splits=splits)
     ):
         if fold_idx == 0:
             run["model_arch"] = str(model)
@@ -204,7 +203,7 @@ def objective(trial: optuna.Trial):
 
         # Reset model between folds
         reset_module_weights(model)
-        opt = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
+        opt = optim.Adam(model.parameters(), 1e-3)
         loss_fn = nn.BCEWithLogitsLoss(
             pos_weight=tensor(train_loader.dataset.get_pos_weight()),
         )
