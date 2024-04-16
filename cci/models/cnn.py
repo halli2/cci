@@ -66,7 +66,7 @@ def suggest_model(trial: Trial, max_kernel_size=14, mlp_layers=0) -> CNNModel:
 
     # Hidden mlp layers
     for n in range(mlp_layers):
-        channels_out = trial.suggest_int(f"mlp_layers_{n}", channels_in, 1)
+        channels_out = trial.suggest_int(f"mlp_layers_{n}", 1, channels_in)
         dropout = trial.suggest_float(f"dropout_mlp_{n}", 0.1, 0.5)
         layers += [
             nn.Linear(channels_in, channels_out),
