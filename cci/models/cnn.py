@@ -38,11 +38,11 @@ def default_model() -> CNNModel:
     return CNNModel(layers)
 
 
-def suggest_model(trial: Trial, max_kernel_size=14) -> CNNModel:
+def suggest_model(trial: Trial, max_kernel_size=14, mlp_layers=0) -> CNNModel:
     """Constructs a simple CNN Model with increasing channels and decreasing kernel size"""
     n_cnn = trial.suggest_int("n_cnn", 1, 3)
 
-    kernel_size = max_kernel_size # Max kernel size in first layer
+    kernel_size = max_kernel_size  # Max kernel size in first layer
     padding = "same"
     channels_in = 1
     layers: list[nn.Module] = []
@@ -62,9 +62,21 @@ def suggest_model(trial: Trial, max_kernel_size=14) -> CNNModel:
         channels_in = channels_out
 
     # Global average pooling [batch_sisze, channels, length] -> [batch_Size, channels, 1]
-    layers += [nn.AdaptiveAvgPool1d(1)]
+    layers += [nn.AdaptiveAvgPool1d(1), nn.Flatten()]
+
+    # Hidden mlp layers
+    for n in range(mlp_layers):
+        channels_out = trial.suggest_int(f"mlp_layers_{n}", channels_in, 1)
+        dropout = trial.suggest_float(f"dropout_mlp_{n}", 0.1, 0.5)
+        layers += [
+            nn.Linear(channels_in, channels_out),
+            nn.Dropout(dropout),
+            nn.ReLU(),
+        ]
+        channels_in = channels_out
+
+    # Output layer
     layers += [
-        nn.Flatten(),
         nn.Linear(channels_in, 1),  # 1 class
     ]
     return CNNModel(layers)

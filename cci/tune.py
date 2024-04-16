@@ -168,6 +168,10 @@ def objective(trial: optuna.Trial):
             model = cnn.suggest_model(trial).to(DEVICE)
         case "CNN_bigger_kernel":
             model = cnn.suggest_model(trial, max_kernel_size=250).to(DEVICE)
+        case "CNN_bigger_kernel_mlp":
+            model = cnn.suggest_model(trial, max_kernel_size=250, mlp_layers=1).to(DEVICE)
+        case "CNN_even_bigger_kernel_mlp":
+            model = cnn.suggest_model(trial, max_kernel_size=1500, mlp_layers=1).to(DEVICE)
         case _:
             raise ValueError(f"Study {study_name} is not implemented")
 
