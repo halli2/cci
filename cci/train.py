@@ -148,45 +148,43 @@ def fit(
     return train_metrics, val_metrics, status
 
 
-class AutoModel(nn.Module):
-    """sa wakanai"""
+# class AutoModel(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.lstm1 = nn.LSTM(1500, 1000, 5, batch_first=True)
+#         self.lstm2 = nn.LSTM(1000, 500, 5, batch_first=True)
+#         self.lstm3 = nn.LSTM(500, 5, 1, batch_first=True)
+#         self.fc = nn.Linear(5, 1)
 
-    def __init__(self):
-        super().__init__()
-        self.lstm1 = nn.LSTM(1500, 1000, 5, batch_first=True)
-        self.lstm2 = nn.LSTM(1000, 500, 5, batch_first=True)
-        self.lstm3 = nn.LSTM(500, 5, 1, batch_first=True)
-        self.fc = nn.Linear(5, 1)
-
-    def forward(self, x: Tensor) -> Tensor:
-        x = x.view(-1, 1, x.size(1))
-        x, _ = self.lstm1(x)
-        x, _ = self.lstm2(x)
-        x, _ = self.lstm3(x)
-        x = self.fc(x[:, -1, :])
-        return x
+#     def forward(self, x: Tensor) -> Tensor:
+#         x = x.view(-1, 1, x.size(1))
+#         x, _ = self.lstm1(x)
+#         x, _ = self.lstm2(x)
+#         x, _ = self.lstm3(x)
+#         x = self.fc(x[:, -1, :])
+#         return x
 
 
-def train_model(train_loader, val_loader):
-    model: nn.Module = todo()
-    opt = optim.Adam(model.parameters())
-    loss_fn = nn.MSELoss()
+# def train_model(train_loader, val_loader):
+#     model: nn.Module = todo()
+#     opt = optim.Adam(model.parameters())
+#     loss_fn = nn.MSELoss()
 
-    train_metrics = Metrics("train", len(train_loader.dataset), DEVICE, fold_idx)
-    val_metrics = Metrics("val", len(val_loader.dataset), DEVICE, fold_idx)
+#     train_metrics = Metrics("train", len(train_loader.dataset), DEVICE, fold_idx)
+#     val_metrics = Metrics("val", len(val_loader.dataset), DEVICE, fold_idx)
 
-    train_metrics, val_metrics, status = fit(
-        model,
-        opt,
-        loss_fn,
-        train_metrics,
-        val_metrics,
-        train_loader,
-        val_loader,
-        [
-            EarlyStopping(patience=200),
-            EpochInfoLogger(50),
-            ModelCheckPoint(RESULTS_DIR / "tmp_model.pt"),
-        ],
-        500,
-    )
+#     train_metrics, val_metrics, status = fit(
+#         model,
+#         opt,
+#         loss_fn,
+#         train_metrics,
+#         val_metrics,
+#         train_loader,
+#         val_loader,
+#         [
+#             EarlyStopping(patience=200),
+#             EpochInfoLogger(50),
+#             ModelCheckPoint(RESULTS_DIR / "tmp_model.pt"),
+#         ],
+#         500,
+#     )
