@@ -53,7 +53,7 @@ For some extra commands used to mount files and lock packages the `justfile` can
 
 ## Running on Gorina (internal servers University of Stavanger)
 
-NOTE: If setup is needed, uncomment the noted lines containing installation commands inside the `jobs.sh` file,
+NOTE: If setup is needed, uncomment the noted lines containing installation commands inside the `job.sh` file,
 or manually run the setup on the server with python 3.11 enabled.
 On gorina11 using slurm:
 
